@@ -42,7 +42,16 @@ function! dispatch#x11#spawn(terminal, command, request, windowid) abort
     let command = 'wmctrl -i -a '. a:windowid . ';' . command
     echom command
   endif
-  call system(a:terminal . ' ' . dispatch#shellescape(&shell, &shellcmdflag, command). ' &')
+
+  " workaround for xterm not correctly parsing the -c option to &shell at
+  " least if it's /bin/bash | https://github.com/tpope/vim-dispatch/issues/343
+  let tempfile = tempname()
+  call writefile(["#!".&shell] + split(command, "\n"), tempfile)
+  call system('chmod +x '.tempfile)
+
+  call system(a:terminal . ' ' . tempfile . ' &')
+  " TODO: remove the tempfile. directly removing it here fails.
+
   return 1
 endfunction
 
